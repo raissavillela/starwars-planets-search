@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import './App.css';
 import Table from './Table';
-import { DataApi } from './types';
+import FilterPlanetName from './FilterPlanetName';
 
 function App() {
-  const [apiData, setApiData] = useState<DataApi[]>([]);
-
-  useEffect(() => {
-    fetch('https://swapi.dev/api/planets')
-      .then((response) => response.json())
-      .then((data) => setApiData(data.results));
-  }, []);
   return (
     <>
-      <h1>Star Wars</h1>
-      <Table planetInformation={ apiData } />
+      <h1>Projeto Star Wars - Trybe</h1>
+      <FilterPlanetName />
+      <Table />
     </>
   );
 }

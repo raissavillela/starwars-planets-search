@@ -1,10 +1,8 @@
-import { DataApi } from './types';
+import { useContext } from 'react';
+import PlanetsContext from './context/PlanetsContext';
 
-type TableProps = {
-  planetInformation: DataApi[];
-};
-
-function Table({ planetInformation }: TableProps) {
+function Table() {
+  const { filteredPlanets } = useContext(PlanetsContext);
   return (
     <div>
       <table>
@@ -26,7 +24,8 @@ function Table({ planetInformation }: TableProps) {
           </tr>
         </thead>
         <tbody>
-          {planetInformation.map((planet, index) => (
+
+          {filteredPlanets.map((planet, index) => (
             <tr key={ index }>
               <td>{planet.name}</td>
               <td>{planet.rotation_period}</td>

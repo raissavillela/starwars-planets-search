@@ -13,3 +13,20 @@ export type DataApi = {
   edited: string;
   url: string;
 };
+
+export type SelectionType = {
+  columnsFilter: string[];
+  comparisonFilter: string[];
+};
+
+export type FilterType = {
+  column: string;
+  comparison: string;
+  amount: string;
+};
+
+export type PlanetsContextType = {
+  planets: DataApi[];
+  filteredPlanets: DataApi[];
+  setFilteredPlanets: React.Dispatch<React.SetStateAction<DataApi[]>>;
+};
