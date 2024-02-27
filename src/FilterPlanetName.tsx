@@ -1,7 +1,8 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import PlanetsContext from './context/PlanetsContext';
-import { DataApi, FilterType, SelectionType } from './types';
+import { DataApi, FilterType, AssortType } from './types';
 import Filters from './Filters';
+import AssortPlanets from './AssortPlanets';
 
 const firstValues = {
   column: 'population',
@@ -9,27 +10,33 @@ const firstValues = {
   amount: '0',
 };
 
-const selection = {
-  columnsFilter: [
-    'population',
-    'orbital_period',
-    'diameter',
-    'rotation_period',
-    'surface_water',
-  ],
-  comparisonFilter: [
-    'maior que',
-    'menor que',
-    'igual a',
-  ],
-};
+const comparisonFilter = [
+  'maior que',
+  'menor que',
+  'igual a',
+];
+
+const columnsFilter = [
+  'population',
+  'orbital_period',
+  'diameter',
+  'rotation_period',
+  'surface_water',
+];
 
 function FilterPlanetName() {
-  const { planets, setFilteredPlanets, filteredPlanets } = useContext(PlanetsContext);
+  const { planets, setFilteredPlanets } = useContext(PlanetsContext);
+
   const [name, setName] = useState('');
   const [formValue, setFormValue] = useState<FilterType>(firstValues);
-  const [options, setOptions] = useState<SelectionType>(selection);
+  const [options, setOptions] = useState<string[]>(columnsFilter);
   const [filterList, setFilterList] = useState<FilterType[]>([]);
+  const [assort, setAssort] = useState<AssortType>({
+    column: columnsFilter[0],
+    sort: 'ASC',
+  });
+
+  useEffect(() => filterPlanets(), [options]);
 
   const getFilterPlanets = (inputValue: string) => {
     const result = planets
@@ -44,26 +51,85 @@ function FilterPlanetName() {
   };
 
   const filterPlanets = () => {
-    console.log(formValue);
-    const { comparison, column, amount } = formValue;
-    const result = filteredPlanets.filter((planet: DataApi) => {
-      if (comparison === 'maior que') {
-        return Number(planet[column as keyof DataApi]) > Number(amount);
-      }
-      if (comparison === 'menor que') {
-        return Number(planet[column as keyof DataApi]) < Number(amount);
-      }
-      return Number(planet[column as keyof DataApi]) === Number(amount);
+    const result = planets.filter((planet: DataApi) => {
+      return filterList.every((filter) => {
+        switch (filter.comparison) {
+          case 'maior que':
+            return Number(planet[filter.column as keyof DataApi])
+            > Number(filter.amount);
+          case 'menor que':
+            return Number(planet[filter.column as keyof DataApi])
+            < Number(filter.amount);
+          default:
+            return Number(planet[filter.column as keyof DataApi])
+            === Number(filter.amount);
+        }
+      });
     });
+
     setFilteredPlanets(result);
-    setFilterList((prevState) => [...prevState, formValue]);
-    setOptions((prevOptions) => (
-      { ...prevOptions,
-        columnsFilter: prevOptions.columnsFilter
-          .filter((item) => item !== formValue.column) }
-    ));
-    setFormValue(firstValues);
   };
+
+  const comparePlanets = (
+    a: DataApi,
+    b: DataApi,
+    column: keyof DataApi,
+    sort: string,
+  ) => {
+    const numericA = Number(a[column]);
+    const numericB = Number(b[column]);
+    if (!Number.isNaN(numericA) && !Number.isNaN(numericB)) {
+      return sort === 'ASC' ? numericA - numericB : numericB - numericA;
+    }
+
+    const stringA = String(a[column]);
+    const stringB = String(b[column]);
+
+    return stringA.localeCompare(stringB);
+  };
+
+  const assortPlanets = () => {
+    setFilteredPlanets((prevState) => {
+      const sortedPlanets = [...prevState].sort((a, b) => {
+        return comparePlanets(a, b, assort.column as keyof DataApi, assort.sort);
+      });
+      return sortedPlanets;
+    });
+  };
+
+  const handleAddFilter = () => {
+    setFilterList((prevState) => {
+      const newFilterList = [...prevState, formValue];
+      const columnsList = newFilterList.map((item) => item.column);
+      const optionsList = columnsFilter
+        .filter((item) => !columnsList.includes(item));
+      setOptions(optionsList);
+      setFormValue({
+        ...firstValues,
+        column: optionsList.length > 0 ? optionsList[0] : '',
+      });
+
+      return newFilterList;
+    });
+  };
+
+  const handleRemoveFilter = (column: string) => {
+    const result = filterList.filter((filter) => filter.column !== column);
+    setFilterList(result);
+
+    const newOptionsList = [...options, column];
+    setOptions(newOptionsList);
+  };
+
+  const handleRemoveAllFilters = () => {
+    setFilterList([]);
+    setOptions(columnsFilter);
+    setFormValue({
+      ...firstValues,
+      column: columnsFilter[0],
+    });
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>,
   ) => {
@@ -71,6 +137,15 @@ function FilterPlanetName() {
       ...formValue,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleChangeOrder = (
+    e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>,
+  ) => {
+    setAssort((prevAssort) => ({
+      ...prevAssort,
+      [e.target.name]: e.target.value,
+    }));
   };
 
   return (
@@ -98,7 +173,7 @@ function FilterPlanetName() {
               onChange={ handleChange }
               value={ formValue.column }
             >
-              {options.columnsFilter.map((column) => (
+              {options.map((column) => (
                 <option
                   value={ column }
                   key={ column }
@@ -117,7 +192,7 @@ function FilterPlanetName() {
               onChange={ handleChange }
               value={ formValue.comparison }
             >
-              {options.comparisonFilter.map((comparison) => (
+              {comparisonFilter.map((comparison) => (
                 <option
                   value={ comparison }
                   key={ comparison }
@@ -142,17 +217,27 @@ function FilterPlanetName() {
           <button
             data-testid="button-filter"
             type="button"
-            onClick={ filterPlanets }
+            onClick={ () => {
+              filterPlanets();
+              handleAddFilter();
+            } }
           >
             Filtrar
           </button>
         </div>
       </form>
+      <AssortPlanets
+        assort={ assort }
+        handleChangeAssort={ handleChangeOrder }
+        columnsFilter={ columnsFilter }
+        assortPlanets={ assortPlanets }
+      />
       <Filters
         filterList={ filterList }
+        handleRemoveFilter={ handleRemoveFilter }
+        handleRemoveAllFilters={ handleRemoveAllFilters }
       />
     </>
   );
 }
-
 export default FilterPlanetName;

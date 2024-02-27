@@ -14,7 +14,7 @@ export type DataApi = {
   url: string;
 };
 
-export type SelectionType = {
+export type OptionsFomrType = {
   columnsFilter: string[];
   comparisonFilter: string[];
 };
@@ -29,4 +29,9 @@ export type PlanetsContextType = {
   planets: DataApi[];
   filteredPlanets: DataApi[];
   setFilteredPlanets: React.Dispatch<React.SetStateAction<DataApi[]>>;
+};
+
+export type AssortType = {
+  column: string;
+  sort: string;
 };
